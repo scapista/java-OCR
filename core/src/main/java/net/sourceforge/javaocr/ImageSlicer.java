@@ -27,6 +27,7 @@ public interface ImageSlicer {
      * start horizontal slicing iteration from certain position  empty row means new image
      *
      * @param fromY starting Y
+     * @return ImageSlicer
      */
     public ImageSlicer slice(int fromY);
 
@@ -35,6 +36,7 @@ public interface ImageSlicer {
      *
      * @param fromY     starting position
      * @param tolerance amount of empty rows allowed inside consecutive image
+     * @return ImageSlicer
      */
     public ImageSlicer slice(int fromY, int tolerance);
 

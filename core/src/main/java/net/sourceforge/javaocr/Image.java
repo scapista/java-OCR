@@ -33,8 +33,8 @@ public interface Image {
     /**
      * retrieve value of pixel in image specific fashion
      *
-     * @param x
-     * @param y
+     * @param x     X Value
+     * @param y     Y Value
      * @return
      */
     int get(int x, int y);
@@ -42,23 +42,23 @@ public interface Image {
     /**
      * store pixel at specified position
      *
-     * @param x
-     * @param y
-     * @param value
+     * @param x     X Value
+     * @param y     Y Value
+     * @param value     Value Value
      */
     void put(int x, int y, int value);
 
     /**
      * retrieve pixekl at current position, does not modify current image pointer
      *
-     * @return
+     * @return pixel in current position
      */
     int get();
 
     /**
      * store pixel at current position, does not modify current image pointer
      *
-     * @param value
+     * @param value     Value Value
      */
     void put(int value);
 
@@ -69,7 +69,7 @@ public interface Image {
      * @param y     Y value
      * @param from  inclusive from
      * @param to    inclusive to
-     * @param value
+     * @param value     Value Value
      * @return whether line is empty in image specific fashion
      * @deprecated use iterator instead
      */
@@ -81,7 +81,7 @@ public interface Image {
      * @param x     X Value
      * @param from  inclusive from
      * @param to    inclusive to
-     * @param value
+     * @param value     Value Value
      * @return whether line is empty in image specific fashion
      * @deprecated use iterators instead
      */
@@ -106,12 +106,14 @@ public interface Image {
 
     /**
      * convenience method to initialize iterator over whole image row
+     * @param y image row
      */
     void iterateH(int y);
 
     /**
      * initialize iterator over part of row
      *
+     * @param y image row
      * @param from from position
      * @param to   to position
      */
@@ -119,33 +121,38 @@ public interface Image {
 
     /**
      * convenience method to initialize iterator over whole image column
+     *
+     * @param x image column
      */
     void iterateV(int x);
 
     /**
      * initialize iterator over part of column
      *
-     * @param from
-     * @param to
+     * @param x image column
+     * @param from from position
+     * @param to   to position
      */
     void iterateV(int x, int from, int to);
 
     /**
      * advance and retrieve next available pixel
      *
-     * @return
+     * @return the next pixel
      */
     int next();
 
     /**
      * store and advance to next pixel
+     *
+     * @param pixel next pixel
      */
     void next(int pixel);
 
     /**
      * whether next pixel is available
      *
-     * @return
+     * @return hasNext pixel
      */
     boolean hasNext();
 
@@ -188,12 +195,12 @@ public interface Image {
      * @return   column image
      */
     Image column(int x);
-    
+
     /**
      * aspect ration of this image
      * TODO: do we actually need this?
      *
-     * @return
+     * @return the aspect ratio
      */
     float getAspectRatio();
 }

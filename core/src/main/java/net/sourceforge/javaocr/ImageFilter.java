@@ -26,7 +26,7 @@ public interface ImageFilter {
     /**
      * perform image processing possibly overwriting the image with the result
      *
-     * @param image
+     * @param image image
      */
     void process(Image image);
 
