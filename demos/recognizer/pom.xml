@@ -29,7 +29,6 @@
                   <emulator>
                       <avd>16</avd>
                   </emulator>
-                  <deleteConflictingFiles>true</deleteConflictingFiles>
                   <undeployBeforeDeploy>true</undeployBeforeDeploy>
               </configuration>
           </plugin>

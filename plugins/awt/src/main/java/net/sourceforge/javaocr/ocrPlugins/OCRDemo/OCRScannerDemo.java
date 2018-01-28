@@ -30,6 +30,9 @@ import net.sourceforge.javaocr.ocrPlugins.mseOCR.TrainingImage;
 import net.sourceforge.javaocr.ocrPlugins.mseOCR.TrainingImageLoader;
 import net.sourceforge.javaocr.scanner.PixelImage;
 
+import static java.util.logging.Logger.global;
+import static sun.misc.Version.println;
+
 /**
  * Demo application to demonstrate OCR document scanning and decoding.
  * @author Ronald B. Cemer
@@ -38,9 +41,11 @@ public class OCRScannerDemo
 {
 
     private static final long serialVersionUID = 1L;
-    private boolean debug = true;
+    private boolean debug = true, deletebadimage = true;
+    private String globalimage;
     private Image image;
     private OCRScanner scanner;
+    private HashMap<Character, ArrayList<TrainingImage>> trainingImageMap = new HashMap<Character, ArrayList<TrainingImage>>();
 
     public OCRScannerDemo()
     {
@@ -57,39 +62,15 @@ public class OCRScannerDemo
         {
             System.err.println("loadTrainingImages(" + trainingImageDir + ")");
         }
-        if (!trainingImageDir.endsWith(File.separator))
-        {
-            trainingImageDir += File.separator;
-        }
+
         try
         {
             scanner.clearTrainingImages();
-            TrainingImageLoader loader = new TrainingImageLoader();
-            HashMap<Character, ArrayList<TrainingImage>> trainingImageMap = new HashMap<Character, ArrayList<TrainingImage>>();
-            if (debug)
-            {
-                System.err.println("ascii.png");
-            }
-            loader.load(
-                    trainingImageDir + "ascii.png",
-                    new CharacterRange('!', '~'),
-                    trainingImageMap);
-            if (debug)
-            {
-                System.err.println("hpljPica.jpg");
-            }
-            loader.load(
-                    trainingImageDir + "hpljPica.jpg",
-                    new CharacterRange('!', '~'),
-                    trainingImageMap);
-            if (debug)
-            {
-                System.err.println("digits.jpg");
-            }
-            loader.load(
-                    trainingImageDir + "digits.jpg",
-                    new CharacterRange('0', '9'),
-                    trainingImageMap);
+            trainDirectories(trainingImageDir + "numbersNew/",1);
+            trainDirectories(trainingImageDir + "CapLettersNew/",2);
+            trainDirectories(trainingImageDir + "FullRangeChars/",5);
+            trainSingleChar(trainingImageDir);
+
             if (debug)
             {
                 System.err.println("adding images");
@@ -103,7 +84,92 @@ public class OCRScannerDemo
         catch (IOException ex)
         {
             ex.printStackTrace();
+            movefile();
             System.exit(2);
+        }
+    }
+    private void movefile(){
+        try{
+            File afile =new File(globalimage);
+
+            if(afile.renameTo(new File("/Users/scapista/Desktop/Training_data/discardTraning/" + afile.getName()))){
+                System.out.println("File is moved successful!");
+            }else{
+                System.out.println("File is failed to move!");
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    private void trainSingleChar(String trainingImageDir) throws IOException{
+        File[] files = new File(trainingImageDir).listFiles();
+        for (File file : files) {
+            if (file.isDirectory() && file.getName().getBytes().length == 1) {
+                if (debug) {
+                    System.err.println("Directory: " + file.getName() + " is being processed");
+                }
+                trainDirectories(trainingImageDir + file.getName(), 6);
+            }
+        }
+    }
+    private void trainDirectories(String trainingImageDir,int type) throws IOException{
+        char minRange, maxRange;
+        TrainingImageLoader loader = new TrainingImageLoader();
+        File[] files = new File(trainingImageDir).listFiles();
+        //If this pathname does not denote a directory, then listFiles() returns null.
+
+        switch (type){
+            case 1:
+                minRange = '0';
+                maxRange = '9';
+
+                break;
+            case 2:
+                minRange = 'A';
+                maxRange = 'Z';
+                break;
+            case 5:
+                minRange = '!';
+                maxRange = '~';
+                break;
+            case 6:
+                int endIndex = trainingImageDir.lastIndexOf("/");
+                minRange = trainingImageDir.substring(endIndex+1,endIndex+2).charAt(0);
+                maxRange = minRange;
+                break;
+            default:
+                System.err.println("invalid training type: " + type + " ");
+                return;
+        }
+        if (debug) {
+            System.err.println("ascii minRange: " + minRange + " ascii maxRange: " + maxRange);
+        }
+        if (!trainingImageDir.endsWith(File.separator))
+        {
+            trainingImageDir += File.separator;
+        }
+        for (File file : files) {
+            if (file.isFile()) {
+                globalimage = trainingImageDir + file.getName();
+                if (maxRange == minRange){
+                    if (debug)
+                    {
+                        System.err.println("Single ascii logging:" + globalimage);
+                    }
+                    loader.load(
+                            globalimage,
+                            new CharacterRange(minRange),
+                            trainingImageMap);
+                } else {
+                    if (debug) {
+                        System.err.println("Range ascii logging:" + globalimage);
+                    }
+                    loader.load(
+                            globalimage,
+                            new CharacterRange(minRange, maxRange),
+                            trainingImageMap);
+                }
+            }
         }
     }
 
@@ -138,7 +204,7 @@ public class OCRScannerDemo
         {
             System.err.println("converting PixelImage to grayScale");
         }
-        pixelImage.toGrayScale(true);
+        pixelImage.toGrayScale(false);
         if (debug)
         {
             System.err.println("filtering");
@@ -161,7 +227,7 @@ public class OCRScannerDemo
             System.err.println("Please specify one or more image filenames.");
             System.exit(1);
         }
-        String trainingImageDir = System.getProperty("TRAINING_IMAGE_DIR");
+        String trainingImageDir = "/Users/scapista/Desktop/Training_data/";
         if (trainingImageDir == null)
         {
             System.err.println("Please specify -DTRAINING_IMAGE_DIR=<dir> on "
@@ -172,7 +238,7 @@ public class OCRScannerDemo
         demo.loadTrainingImages(trainingImageDir);
         for (int i = 0; i < args.length; i++)
         {
-            demo.process(args[i]);
+            demo.process("/Users/scapista/Desktop/Training_data/target_4lines.jpg");
         }
         System.out.println("done.");
     }
