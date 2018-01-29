@@ -24,12 +24,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import net.sourceforge.javaocr.ocrPlugins.mseOCR.CharacterRange;
 import net.sourceforge.javaocr.ocrPlugins.mseOCR.OCRScanner;
 import net.sourceforge.javaocr.ocrPlugins.mseOCR.TrainingImage;
 import net.sourceforge.javaocr.ocrPlugins.mseOCR.TrainingImageLoader;
 import net.sourceforge.javaocr.scanner.PixelImage;
 
+import static com.sun.tools.doclint.Entity.ne;
 import static java.util.logging.Logger.global;
 import static jdk.nashorn.internal.objects.NativeString.substring;
 import static sun.misc.Version.println;
@@ -41,8 +44,7 @@ import static sun.misc.Version.println;
 public class OCRScannerDemo {
 
     private static final long serialVersionUID = 1L;
-    private boolean debug = true, deletebadimage = true;
-    private String globalimage;
+    private boolean debug = true;
     private Image image;
     private OCRScanner scanner;
     private HashMap<Character, ArrayList<TrainingImage>> trainingImageMap = new HashMap<Character, ArrayList<TrainingImage>>();
@@ -61,7 +63,7 @@ public class OCRScannerDemo {
      * Load demo training images.
      * @param trainingImageDir The directory from which to load the images.
      */
-    private void loadTrainingImages(String trainingImageDir) {
+    private void startTraining(String trainingImageDir) {
         debugInfo( "Trainging Image Directory -> " + trainingImageDir );
         try {
             scanner.clearTrainingImages();
@@ -75,15 +77,14 @@ public class OCRScannerDemo {
             debugInfo ( "loadTrainingImages() done");
         } catch (IOException ex) {
             ex.printStackTrace();
-            movefile();
             System.exit(2);
         }
     }
-    private void movefile() {
+    private void movefile(String fileName, String moveDirectory) {
         try {
-            File afile = new File(globalimage);
+            File afile = new File(fileName);
 
-            if (afile.renameTo(new File("/Users/scapista/Desktop/Training_data/discardTraning/" + afile.getName()))) {
+            if (afile.renameTo(new File( moveDirectory + afile.getName()))) {
                 debugInfo ( "File is moved successful!");
             } else {
                 debugInfo ( "File is failed to move!");
@@ -120,7 +121,7 @@ public class OCRScannerDemo {
      * @param trainableChar char to be trained
      * @param trainingImageDir directory to be trained
      */
-    private void trainSingleChar(String trainingImageDir, char trainableChar) throws IOException{
+    private void trainSingleChar(String trainingImageDir, char trainableChar) throws IOException {
         File directory = new File(trainingImageDir);
         if(directory.exists()){
             debugInfo ( "direectory " + directory + " exists");
@@ -129,35 +130,39 @@ public class OCRScannerDemo {
             debugInfo ( "direectory " + directory + " does not exist");
         }
     }
-    private void trainDirectories(String trainingImageDir,char minRange, char maxRange) throws IOException{
+    private void loadTrainingImages(String dirFileName, char minRange, char maxRange) {
         TrainingImageLoader loader = new TrainingImageLoader();
+        if (maxRange == minRange) {
+            debugInfo("Single ascii char: " + minRange + " --> " + dirFileName);
+        } else {
+            debugInfo("Range ascii max: " + maxRange + " min: " + maxRange + " --> " + dirFileName);
+        }
+        try {
+            loader.load(
+                    dirFileName,
+                    new CharacterRange(minRange, maxRange),
+                    trainingImageMap);
+        } catch (IOException e) {
+            e.printStackTrace();
+            movefile(dirFileName, "/Users/scapista/Desktop/Training_data/discardTraining/" );
+        }
+    }
+    private void trainDirectories(String trainingImageDir, char minRange, char maxRange) throws IOException{
         File[] files = new File(trainingImageDir).listFiles();
         //If this pathname does not denote a directory, then listFiles() returns null.
 
-        debugInfo ( "ascii minRange: " + minRange + " ascii maxRange: " + maxRange);
+        debugInfo ("trainingImageDir: " + trainingImageDir + " minRange:" + minRange + " maxRange: " + maxRange);
         if (!trainingImageDir.endsWith(File.separator)) {
             trainingImageDir += File.separator;
         }
-        //process all files in
+        //process all files in directory
         for (File file : files) {
             if (file.isFile()) {
-                globalimage = trainingImageDir + file.getName();
-                if (maxRange == minRange){
-                    debugInfo ( "Single ascii logging:" + globalimage);
-                    loader.load(
-                            globalimage,
-                            new CharacterRange(minRange),
-                            trainingImageMap);
-                } else {
-                    debugInfo ( "Range ascii logging:" + globalimage);
-                    loader.load(
-                            globalimage,
-                            new CharacterRange(minRange, maxRange),
-                            trainingImageMap);
-                }
+                loadTrainingImages(trainingImageDir + file.getName(), minRange, maxRange);
             }
         }
     }
+
 
 
     private void process(String imageFilename) {
@@ -176,12 +181,14 @@ public class OCRScannerDemo {
 
         debugInfo ( "constructing new PixelImage" );
         PixelImage pixelImage = new PixelImage(image);
+
         debugInfo ( "converting PixelImage to grayScale" );
         pixelImage.toGrayScale(false);
-        debugInfo ( "filtering");
+
+        debugInfo ( "filtering" );
         pixelImage.filter();
+
         debugInfo ( "setting image for display" );
-       
         System.out.println(imageFilename + ":");
         String text = scanner.scan(image, 0, 0, 0, 0, null);
         System.out.println("[" + text + "]");
@@ -200,9 +207,9 @@ public class OCRScannerDemo {
             return;
         }
         OCRScannerDemo demo = new OCRScannerDemo();
-        demo.loadTrainingImages(trainingImageDir);
+        demo.startTraining(trainingImageDir);
         for (int i = 0; i < args.length; i++) {
-            demo.process("/Users/scapista/Desktop/Training_data/target_4lines.jpg");
+            demo.process("/Users/scapista/Desktop/Training_data/IMG_2371.jpg");
         }
         System.out.println("done.");
     }
