@@ -207,8 +207,8 @@ public class OCRScannerDemo {
 
         debug.fine ( "setting image for display" );
         debug.info("Input Image Name -> " + imageFilename + ":");
-        String text = scanner.scan(image, 0, 0, 0, 0, null);
-        System.out.println("[" + text + "]"); 
+        String text = scanner.scan(image, 0, 0, 0, 0, null);  
+        System.out.println("[" + text + "]");
         
     }
     public static void main(String[] args)
