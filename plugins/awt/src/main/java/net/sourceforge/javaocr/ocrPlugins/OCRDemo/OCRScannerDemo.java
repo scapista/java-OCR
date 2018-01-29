@@ -31,14 +31,14 @@ import net.sourceforge.javaocr.ocrPlugins.mseOCR.TrainingImageLoader;
 import net.sourceforge.javaocr.scanner.PixelImage;
 
 import static java.util.logging.Logger.global;
+import static jdk.nashorn.internal.objects.NativeString.substring;
 import static sun.misc.Version.println;
 
 /**
  * Demo application to demonstrate OCR document scanning and decoding.
  * @author Ronald B. Cemer
  */
-public class OCRScannerDemo
-{
+public class OCRScannerDemo {
 
     private static final long serialVersionUID = 1L;
     private boolean debug = true, deletebadimage = true;
@@ -47,8 +47,13 @@ public class OCRScannerDemo
     private OCRScanner scanner;
     private HashMap<Character, ArrayList<TrainingImage>> trainingImageMap = new HashMap<Character, ArrayList<TrainingImage>>();
 
-    public OCRScannerDemo()
-    {
+    private void debugInfo(String logOutput) {
+        if (debug) {
+            System.err.println( Thread.currentThread().getStackTrace()[2].getMethodName() + ": " + logOutput);
+        }
+    }
+
+    private  OCRScannerDemo() {
         scanner = new OCRScanner();
     }
 
@@ -56,114 +61,95 @@ public class OCRScannerDemo
      * Load demo training images.
      * @param trainingImageDir The directory from which to load the images.
      */
-    public void loadTrainingImages(String trainingImageDir)
-    {
-        if (debug)
-        {
-            System.err.println("loadTrainingImages(" + trainingImageDir + ")");
-        }
-
-        try
-        {
+    private void loadTrainingImages(String trainingImageDir) {
+        debugInfo( "Trainging Image Directory -> " + trainingImageDir );
+        try {
             scanner.clearTrainingImages();
-            trainDirectories(trainingImageDir + "numbersNew/",1);
-            trainDirectories(trainingImageDir + "CapLettersNew/",2);
-            trainDirectories(trainingImageDir + "FullRangeChars/",5);
+            trainDirectories(trainingImageDir + "numbersNew/",'0','9');
+            trainDirectories(trainingImageDir + "CapLettersNew/",'A','Z');
+            trainDirectories(trainingImageDir + "FullRangeChars/",'!','~');
             trainSingleChar(trainingImageDir);
 
-            if (debug)
-            {
-                System.err.println("adding images");
-            }
+            debugInfo ( "adding images");
             scanner.addTrainingImages(trainingImageMap);
-            if (debug)
-            {
-                System.err.println("loadTrainingImages() done");
-            }
-        }
-        catch (IOException ex)
-        {
+            debugInfo ( "loadTrainingImages() done");
+        } catch (IOException ex) {
             ex.printStackTrace();
             movefile();
             System.exit(2);
         }
     }
-    private void movefile(){
-        try{
-            File afile =new File(globalimage);
+    private void movefile() {
+        try {
+            File afile = new File(globalimage);
 
-            if(afile.renameTo(new File("/Users/scapista/Desktop/Training_data/discardTraning/" + afile.getName()))){
-                System.out.println("File is moved successful!");
-            }else{
-                System.out.println("File is failed to move!");
+            if (afile.renameTo(new File("/Users/scapista/Desktop/Training_data/discardTraning/" + afile.getName()))) {
+                debugInfo ( "File is moved successful!");
+            } else {
+                debugInfo ( "File is failed to move!");
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    private void trainSingleChar(String trainingImageDir) throws IOException{
+    private char getDirectoryCharName(String trainingImageDir) {
+        debugInfo ( trainingImageDir);
+        int endIndex = trainingImageDir.lastIndexOf("/");
+        return trainingImageDir.substring(endIndex+1,endIndex+2).charAt(0);
+    }
+    /**
+     * loops through all directories in input parm directory
+     *
+     * @param trainingImageDir directory to be trained
+     */
+    private void trainSingleChar(String trainingImageDir) throws IOException {
         File[] files = new File(trainingImageDir).listFiles();
         for (File file : files) {
             if (file.isDirectory() && file.getName().getBytes().length == 1) {
-                if (debug) {
-                    System.err.println("Directory: " + file.getName() + " is being processed");
-                }
-                trainDirectories(trainingImageDir + file.getName(), 6);
+                debugInfo ( "Directory: " + file.getName() + " is being processed");
+                trainSingleChar(trainingImageDir + file.getName()
+                        , getDirectoryCharName(trainingImageDir + file.getName()));
             }
         }
     }
-    private void trainDirectories(String trainingImageDir,int type) throws IOException{
-        char minRange, maxRange;
+    /**
+     * overridden to get a single character if need
+     * this gives the ability to move the directory
+     * outside of the global trainingImageDir variable
+     *
+     * @param trainableChar char to be trained
+     * @param trainingImageDir directory to be trained
+     */
+    private void trainSingleChar(String trainingImageDir, char trainableChar) throws IOException{
+        File directory = new File(trainingImageDir);
+        if(directory.exists()){
+            debugInfo ( "direectory " + directory + " exists");
+            trainDirectories(trainingImageDir, trainableChar, trainableChar);
+        } else {
+            debugInfo ( "direectory " + directory + " does not exist");
+        }
+    }
+    private void trainDirectories(String trainingImageDir,char minRange, char maxRange) throws IOException{
         TrainingImageLoader loader = new TrainingImageLoader();
         File[] files = new File(trainingImageDir).listFiles();
         //If this pathname does not denote a directory, then listFiles() returns null.
 
-        switch (type){
-            case 1:
-                minRange = '0';
-                maxRange = '9';
-
-                break;
-            case 2:
-                minRange = 'A';
-                maxRange = 'Z';
-                break;
-            case 5:
-                minRange = '!';
-                maxRange = '~';
-                break;
-            case 6:
-                int endIndex = trainingImageDir.lastIndexOf("/");
-                minRange = trainingImageDir.substring(endIndex+1,endIndex+2).charAt(0);
-                maxRange = minRange;
-                break;
-            default:
-                System.err.println("invalid training type: " + type + " ");
-                return;
-        }
-        if (debug) {
-            System.err.println("ascii minRange: " + minRange + " ascii maxRange: " + maxRange);
-        }
-        if (!trainingImageDir.endsWith(File.separator))
-        {
+        debugInfo ( "ascii minRange: " + minRange + " ascii maxRange: " + maxRange);
+        if (!trainingImageDir.endsWith(File.separator)) {
             trainingImageDir += File.separator;
         }
+        //process all files in
         for (File file : files) {
             if (file.isFile()) {
                 globalimage = trainingImageDir + file.getName();
                 if (maxRange == minRange){
-                    if (debug)
-                    {
-                        System.err.println("Single ascii logging:" + globalimage);
-                    }
+                    debugInfo ( "Single ascii logging:" + globalimage);
                     loader.load(
                             globalimage,
                             new CharacterRange(minRange),
                             trainingImageMap);
                 } else {
-                    if (debug) {
-                        System.err.println("Range ascii logging:" + globalimage);
-                    }
+                    debugInfo ( "Range ascii logging:" + globalimage);
                     loader.load(
                             globalimage,
                             new CharacterRange(minRange, maxRange),
@@ -173,47 +159,28 @@ public class OCRScannerDemo
         }
     }
 
-    public void process(String imageFilename)
-    {
-        if (debug)
-        {
-            System.err.println("process(" + imageFilename + ")");
-        }
-        try
-        {
+
+    private void process(String imageFilename) {
+        debugInfo ( "process(" + imageFilename + ")");
+        try {
             image = ImageIO.read(new File(imageFilename));
         }
-        catch (IOException e)
-        {
+        catch (IOException e) {
             e.printStackTrace();
         }
 
-        if (image == null)
-        {
+        if (image == null) {
             System.err.println("Cannot find image file: " + imageFilename);
             return;
         }
 
-        if (debug)
-        {
-            System.err.println("constructing new PixelImage");
-        }
-
+        debugInfo ( "constructing new PixelImage" );
         PixelImage pixelImage = new PixelImage(image);
-        if (debug)
-        {
-            System.err.println("converting PixelImage to grayScale");
-        }
+        debugInfo ( "converting PixelImage to grayScale" );
         pixelImage.toGrayScale(false);
-        if (debug)
-        {
-            System.err.println("filtering");
-        }
+        debugInfo ( "filtering");
         pixelImage.filter();
-        if (debug)
-        {
-            System.err.println("setting image for display");
-        }
+        debugInfo ( "setting image for display" );
        
         System.out.println(imageFilename + ":");
         String text = scanner.scan(image, 0, 0, 0, 0, null);
@@ -222,22 +189,19 @@ public class OCRScannerDemo
 
     public static void main(String[] args)
     {
-        if (args.length < 1)
-        {
-            System.err.println("Please specify one or more image filenames.");
+        if (args.length < 1) {
+            System.err.print( "Please specify one or more image filenames.");
             System.exit(1);
         }
         String trainingImageDir = "/Users/scapista/Desktop/Training_data/";
-        if (trainingImageDir == null)
-        {
+        if (trainingImageDir == null) {
             System.err.println("Please specify -DTRAINING_IMAGE_DIR=<dir> on "
                     + "the java command line.");
             return;
         }
         OCRScannerDemo demo = new OCRScannerDemo();
         demo.loadTrainingImages(trainingImageDir);
-        for (int i = 0; i < args.length; i++)
-        {
+        for (int i = 0; i < args.length; i++) {
             demo.process("/Users/scapista/Desktop/Training_data/target_4lines.jpg");
         }
         System.out.println("done.");
